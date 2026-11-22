@@ -11,10 +11,10 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-import agent                                   # same loop, new tool and instructions
+import agent                                   # same loop, new tools - ML
 
 events = pd.read_csv(agent.ROOT / "work" / "events.csv")
-train = events[events["Year"] <= 2021]         # the only years the agent ever scores on
+train = events[events["Year"] <= 2021]         # year boundary 
 FEATURES = ["Weather", "Month", "State"]
 
 def build(model, features, balanced):

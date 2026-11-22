@@ -7,9 +7,11 @@ A Power BI report, a small ML model, and two Claude agents built on U.S. power o
 high-impact events (≥ 500,000 customer-hours without power)?
 
 ## What's in the data
-- 2,683 major events and 79,711 distinct county outages after de-duplication
-- A small share of outages drives most of the impact: high-impact events are roughly
-  6% of outages but a third of all customer-hours
+- 2,683 major events and 79,711 distinct county outages after de-duplication,
+  about 2.55 billion customer-hours in total
+- 649 events (24%) are high-impact, and the county outages tied to them carry 95% of all customer-hours
+- Weather is behind 49% of all events but 89% of high-impact ones
+- High-impact events were 28% of events in 2014–2021 but only 15% in 2022–2023 (drift, see below)
 
 ## The model (`src/outage_model.py`)
 Logistic regression on event attributes (state, weather vs. non-weather, month, ...).
@@ -18,10 +20,12 @@ It trains on 2014–2021 and is scored on a held-out 2022–2023 test set it nev
 | | Recall (high-impact) | Precision |
 |---|---|---|
 | Baseline (always predict "not high-impact") | 0.00 | – |
-| Cross-validated, 2014–2021 | 0.78 | – |
+| Cross-validated, 2014–2021 | 0.78 | 0.51 |
 | **Held-out test, 2022–2023** | **0.73** | **0.42** |
 
 The model is tuned for recall: missing a big event costs more than a false alarm.
+Test precision is lower because high-impact events became rarer (28% → 15%), so a cut-off tuned on the
+old years flags too much in the new ones.
 The strongest drivers are Louisiana, Michigan, Texas and North Carolina, and weather-caused events.
 
 The model writes a risk score for every event to `outputs/event_risk.csv`, and the report's ML page uses it.
@@ -40,7 +44,8 @@ the questions you can't predict.
 
 ### Analyst agent (`src/agent.py`)
 Ask a plain-English question; Claude writes pandas code, the program runs it and sends back the output,
-and that repeats until it can answer. One tool (`run_python`), one loop, about 70 lines.
+and that repeats until it can answer. One tool (`run_python`), one loop, about 75 lines.
+It also says when the data can't answer (asked what the outages cost in dollars, it declines).
 
 **The Texas trap.** Asked "Which state lost the most customer-hours?", the first version added up
 events and said Texas, about 2.2 billion: nearly the whole country's real total of 2.55 billion.
@@ -60,7 +65,7 @@ answers Florida (about 372 million), just ahead of Texas (about 364 million).
 Removing the `outages.csv` rule makes the Texas case fail, so it works as a regression test for the prompt.
 `tests/test_tools.py` checks the tool itself: output, errors returned instead of crashing, and the timeout.
 
-**Cost.** About 2.5 API calls and $0.014 per question on Claude Sonnet 5.5, measured over 17 questions.
+**Cost.** About 2.5 API calls and $0.014 per question on Claude Sonnet 5.5, measured over 23 questions.
 That's about $7,000 a year at 500,000 questions.
 
 ### Model coach (`src/coach.py`)
@@ -81,7 +86,7 @@ Goal: the highest recall with precision at 0.50 or above.
 | 6 | logreg | Weather, Month, State | 0.46 | 0.810 | 0.495 | no |
 | 7 | **logreg** | **Weather, Month, State** | **0.47** | **0.804** | **0.503** | **yes** |
 
-All settings balanced. The coach picked threshold 0.47 in 2 of 3 runs (0.48 in the other). The random
+All settings balanced. The coach picked threshold 0.47 in 3 of 4 runs (0.48 in the other). The random
 forest did worse than logistic regression at matched precision, so the simpler model stays.
 
 ## Run it

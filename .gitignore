@@ -11,5 +11,6 @@ wheels/
 .env
 work/
 
-# agent deconstruction
+# Agent logs and test cache
 agent_log.jsonl
+.pytest_cache/
