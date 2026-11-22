@@ -1,7 +1,7 @@
 [project]
 name = "grid-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "Grid reliability: Power BI report, outage model, and two Claude agents over U.S. outage data"
 readme = "README.md"
 authors = [
     { name = "Arnav Gupta", email = "65585272+arnavg03@users.noreply.github.com" }
@@ -15,9 +15,10 @@ dependencies = [
     "scikit-learn>=1.9.1",
 ]
 
-[project.scripts]
-grid-agent = "grid_agent:main"
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
 
-[build-system]
-requires = ["uv_build>=0.13.9,<0.14.0"]
-build-backend = "uv_build"
+[tool.pytest.ini_options]
+pythonpath = ["src"]   # so tests can import agent
